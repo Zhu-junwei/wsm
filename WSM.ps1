@@ -16,7 +16,13 @@ function Ensure-RunAsAdmin {
 Ensure-RunAsAdmin
 
 $BoxPath = Join-Path $PSScriptRoot 'plugins/Box.ps1'
-if (Test-Path $BoxPath) { . $BoxPath }
+if (Test-Path $BoxPath) { 
+	. $BoxPath 
+} else {
+	Write-Warning "缺少plugins/Box.ps1插件文件"
+	Read-Host
+	exit
+}
 
 function Initialize-Parameters() {
 	$Global:ScriptName = "Windows服务管理(WSM)"
@@ -501,10 +507,10 @@ function Change-ServiceStartMode {
         "1" { "Automatic" }
         "2" { "Manual" }
         "3" { "Disabled" }
-        default { Write-Host "`n无效选择"; return }
+        default { Write-Host "`无效选择"; return }
     }
     Set-Service $svc.Name -StartupType $mode
-    Write-Host "`n启动类型已更新为 $mode" -ForegroundColor Green
+    Write-Host "`启动类型已更新为 $mode" -ForegroundColor Green
 }
 
 # ---------------------------
@@ -516,17 +522,18 @@ function Remove-ServiceWithConfirmation {
     Write-Host
     $confirm1 = Read-Host "确认从系统中删除服务 $svcName ? (y/N)"
     if ($confirm1 -notmatch "^[Yy]$") {
-        Write-Host "`n取消删除" -ForegroundColor Yellow
+        Write-Host "取消删除" -ForegroundColor Yellow
         Start-Sleep 1
         return
     }
-    $confirm2 = Read-Host "!!! 警告 !!! 此操作不可撤销，真的要删除 $svcName ? (y/N)"
+	Write-Warning "!!! 警告 !!! 此操作不可撤销"
+    $confirm2 = Read-Host "真的要删除 $svcName ? (y/N)"
     if ($confirm2 -notmatch "^[Yy]$") {
-        Write-Host "`n取消删除" -ForegroundColor Yellow
+        Write-Host "取消删除" -ForegroundColor Yellow
         Start-Sleep 1
         return
     }
-    Write-Host "`n正在删除服务..." -ForegroundColor Yellow
+    Write-Host "正在删除服务..." -ForegroundColor Yellow
     # 检查服务是否存在
     $service = Get-Service -Name $svcName -ErrorAction SilentlyContinue
     if (-not $service) {
@@ -712,14 +719,8 @@ function Show-AboutMenu {
 		}
 	}
 
-    # 显示 Box 菜单
-    Show-BoxMenu -Title "关于" `
-                 -MenuItems $menuItems `
-                 -Footer "按回车返回主菜单" `
-                 -BoxStyle $Global:UI.BoxStyle `
-                 -Wrap
-
-    Read-Host
+	Show-BoxMenu -Title "关于" -MenuItems $menuItems -Footer "按回车返回主菜单" -Wrap
+	Read-Host
 	$Global:UI.Width = $width
 }
 
@@ -751,7 +752,7 @@ function Show-MainMenu {
 }
 
 # ===========================
-# 启动脚本
+# 启动应用
 # ===========================
 function Main{
 	Initialize-Parameters

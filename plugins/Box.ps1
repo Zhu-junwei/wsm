@@ -61,7 +61,7 @@
 # $Global:UI 保存全局界面风格设置
 # Width           : 控制台内容宽度（字符数）
 # BorderColor     : 边框颜色
-# BoxStyle        : 默认边框样式（Double/Single/Heavy/Rounded/Ascii）
+# BoxStyle        : 默认边框样式（Double/Single/Heavy/Rounded/Ascii/Dotted）
 # TitleColor      : 标题文本颜色
 # TextColor       : 普通文本颜色
 # TextPaddingLeft : 左右内边距
@@ -70,7 +70,7 @@
 $Global:UI = @{
 	Width       = 50
 	BorderColor = 'DarkCyan'
-	BoxStyle    = 'Rounded'   # Double / Single / Heavy / Rounded / Ascii
+	BoxStyle    = 'Rounded'
 	TitleColor  = 'Cyan'
 	TextColor   = 'White'
 	TextPaddingLeft = 2
@@ -98,6 +98,7 @@ $Global:BoxStyles = @{
     Heavy    = @{TL = '┏'; TR = '┓'; BL = '┗'; BR = '┛'; H  = '━'; V  = '┃'; ML = '┣'; MR = '┫'}
     Rounded  = @{TL = '╭'; TR = '╮'; BL = '╰'; BR = '╯'; H  = '─'; V  = '│'; ML = '├'; MR = '┤'}
     Ascii    = @{TL = '+'; TR = '+'; BL = '+'; BR = '+'; H  = '-'; V  = '|';ML = '+'; MR = '+'}
+    Dotted   = @{TL = '┌'; TR = '┐'; BL = '└'; BR = '┘'; H = '┄'; V = '┆'; ML = '├'; MR = '┤'}
 }
 
 # ==========================================================
@@ -271,7 +272,7 @@ function Show-BoxMenu {
         [TextAlign]$TitleAlign = [TextAlign]::Center,
         [TextAlign]$FooterAlign = [TextAlign]::Right,
         [string]$BoxStyle = $Global:UI.BoxStyle,
-		[switch]$Wrap 
+        [switch]$Wrap 
     )
     # 保存当前样式
     $oldStyle = $Global:UI.BoxStyle

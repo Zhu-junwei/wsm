@@ -1,6 +1,6 @@
 # Windows 服务管理（WSM）
 
-WSM（Windows Service Manager）是一个基于 **PowerShell + [NSSM](https://nssm.cc/) ** 的交互式命令行工具，用于统一管理 Windows 服务，尤其适合管理 **由 NSSM 托管的自定义服务**（EXE / BAT / JAR / Python 等）。
+WSM（Windows Service Manager）是一个基于 PowerShell + [NSSM](https://nssm.cc/) 的交互式命令行工具，用于统一管理 Windows 服务，尤其适合管理 **由 NSSM 托管的自定义服务**（EXE / BAT / JAR / Python 等）。
 
 该工具提供完整的菜单界面，支持服务查看、启动、停止、重启、删除、编辑、主题切换以及 NSSM 的自动安装。
 
@@ -15,7 +15,7 @@ WSM（Windows Service Manager）是一个基于 **PowerShell + [NSSM](https://ns
 ## ✨ 功能特性
 
 - 自动检测并管理 **NSSM 托管的服务**
-- 支持通过 `services.txt` 管理 **非 NSSM 服务**
+- 管理通过 `services.txt` 添加的自定义服务
 - 服务操作：
   - 启动 / 停止 / 重启
   - 删除（双重确认，防误操作）
@@ -35,7 +35,7 @@ WSM（Windows Service Manager）是一个基于 **PowerShell + [NSSM](https://ns
 ## 🧩 运行环境要求
 
 - Windows 10 / 11
-- PowerShell 5.1 或 PowerShell 7+
+- PowerShell 5.1
 - 管理员权限（脚本会自动请求）
 - 可访问互联网（仅在下载 NSSM 时需要）
 
@@ -44,8 +44,8 @@ WSM（Windows Service Manager）是一个基于 **PowerShell + [NSSM](https://ns
 ## 📁 目录结构说明
 
 ```text
-WSM.ps1                 # 主脚本
-services.txt            # 额外需要管理的服务列表（可选）
+WSM.ps1                 # 主程序
+services.txt            # 额外需要管理的服务列表
 plugins/
  └─ Box.ps1             # 控制台 Box UI 插件
 themes/
@@ -109,17 +109,15 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
 ### 2️⃣ 主菜单功能
 
 - **服务列表**：
-  查看并管理所有 NSSM 服务及 `services.txt` 中定义的服务
+
+	- 查看并管理所有 NSSM 服务及 `services.txt` 中定义的服务
 
 - **添加新服务**：
-  调用 NSSM 官方 GUI (`nssm install`)
-
-  编辑自定义服务列表`services.txt`
-  
+	- 调用 NSSM 官方 GUI (`nssm install`)
+	- 编辑自定义服务列表`services.txt`
+	
 - **程序设置**：
-  
-  - 安装 / 检测 NSSM
-  - 编辑服务文件`services.txt`
+  - 安装NSSM
   - 切换主题
   
 - **关于**：
@@ -129,7 +127,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
 
 ## 📄 services.txt 说明
 
-`services.txt` 用于补充需要管理的 **非 NSSM 服务**。
+`services.txt` 用于补充需要管理的服务。(使用nssm添加的服务会自动管理)
 
 示例：
 
@@ -165,7 +163,7 @@ MySQL
 # 字段说明：
 #   Width           : 菜单/Box 宽度（字符数）
 #   BorderColor     : 边框颜色
-#   BoxStyle        : 边框样式（Double/Single/Heavy/Rounded/Ascii）
+#   BoxStyle        : 边框样式（Double/Single/Heavy/Rounded/Ascii/Dotted）
 #   TitleColor      : 菜单标题颜色
 #   TextColor       : 列表文本颜色
 #   TextPaddingLeft : 文本左侧缩进空格数
@@ -179,7 +177,7 @@ $Global:UI = @{
     TextColor   = 'Cyan'
     TextPaddingLeft = 2
     AccentColor = 'DarkYellow'
-	MutedColor  = 'Gray'
+    MutedColor  = 'Gray'
 }
 ```
 
@@ -188,9 +186,9 @@ $Global:UI = @{
 ## ⚙️ NSSM 支持说明
 
 - 程序启动时自动检测程序所当前目录以及环境变量PATH中的 `nssm.exe`
-- 未检测到时不会强制安装
-- 可在【设置】菜单中手动下载安装
-- 支持自动加入系统 PATH
+- 未检测到时不会强制安装，仍可管理`services.txt`中添加的服务，但编辑功能和使用nssm添加服务功能无法使用
+- 可在【设置】菜单中手动下载nssm安装
+- 支持安装时加入系统 PATH
 
 NSSM 官网：[nssm](https://nssm.cc)
 

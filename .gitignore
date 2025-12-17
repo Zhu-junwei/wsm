@@ -1,7 +1,6 @@
 # PowerShell
 *.log
 *.tmp
-services.txt
 
 # VS Code
 .vscode/
