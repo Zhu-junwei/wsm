@@ -1,7 +1,6 @@
 ﻿# ===========================
 # NSSM 服务管理菜单
 # ===========================
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 # 检测管理员权限
 function Ensure-RunAsAdmin {
@@ -121,7 +120,7 @@ function Load-Language {
     $languageFilePath = Join-Path -Path $PSScriptRoot -ChildPath "languages\$osLanguage.json"
     if (Test-Path $languageFilePath) {
         try {
-            $languageJson = Get-Content -Path $languageFilePath -Raw | ConvertFrom-Json
+            $languageJson = Get-Content -Path $languageFilePath -Encoding UTF8 | ConvertFrom-Json
         } catch {
             $languageJson = $defaultLanguageJson | ConvertFrom-Json
         }
@@ -176,7 +175,7 @@ function Load-SavedTheme {
 		$ThemeDir = Join-Path $PSScriptRoot $Global:ThemeDir
 		$ThemeSaveFile = Join-Path $ThemeDir "current_theme.txt"
 		if (Test-Path $ThemeSaveFile) {
-			$themeName = (Get-Content $ThemeSaveFile -Raw).Trim()
+			$themeName = (Get-Content $ThemeSaveFile -Encoding UTF8).Trim()
 			$themePath = Join-Path $ThemeDir "$themeName.ps1"
 			if (Test-Path $themePath) {
 				. "$themePath"
