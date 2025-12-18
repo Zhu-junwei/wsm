@@ -147,8 +147,8 @@ if (Test-Path $BoxPath) {
 function Initialize-Parameters() {
 	$Global:ScriptName = "Windows服务管理(WSM)"
 	$Global:ScriptUser = "zjw"
-	$Global:ScriptVersion = "v1.2.0"
-	$Global:ScriptUpdate = "20251217"
+	$Global:ScriptVersion = "v1.3.0"
+	$Global:ScriptUpdate = "20251218"
 	$Global:ServiceFile = "services.txt"
 	$Global:NssmInstallDir = "$env:ProgramFiles\NSSM"
 	$Global:NssmZipUrl    = "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip"
