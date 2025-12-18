@@ -1,29 +1,149 @@
 ﻿# ===========================
 # NSSM 服务管理菜单
 # ===========================
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# 检测管理员权限，如果不是管理员则以管理员重新运行
+# 检测管理员权限
 function Ensure-RunAsAdmin {
+    # 获取当前用户身份
     $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Host "正在以管理员权限重新启动脚本..." -ForegroundColor Yellow
-        $scriptPathEscaped = $PSCommandPath -replace '(["`])', '``$1'
-        Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPathEscaped`"" -Verb RunAs
+        Write-Warning "$($L.runAsAdminPrompt)"
+        Read-Host
         Exit
     }
 }
-Ensure-RunAsAdmin
 
+# 默认中文语言包的JSON字符串
+$defaultLanguageJson = @"
+{
+  "appName": "Windows Service Manager (WSM)",
+  "runAsAdminPrompt": "Please run this program as administrator",
+  "serviceList": "Service List",
+  "addService": "Add Service",
+  "setting": "Settings",
+  "about": "About",
+  "exit": "Exit",
+  "selectOperation": "Please select an operation",
+  "return": "Return",
+  "returnMainMenu": "Return to Main Menu",
+  "noManagedServices": "No services available to manage",
+  "pressEnterToContinue": "Press Enter to continue",
+  "pressEnterToExit": "Press Enter to exit the program",
+  "currentStatus": "Current Status",
+  "startService": "Start Service",
+  "start": "Starting...",
+  "stop": "Stopping...",
+  "restart": "Restarting...",
+  "stopService": "Stop Service",
+  "success": "Success",
+  "failure": "Failure",
+  "restartService": "Restart Service",
+  "viewDetails": "View Details",
+  "serviceDetails": "Service Details",
+  "changeStartupType": "Change Startup Type",
+  "changingStartupType": "Changing startup type...",
+  "currentStartupType": "Current Startup Type: ",
+  "selectNewStartupType": "Select new startup type",
+  "invalidChoice": "Invalid choice",
+  "startupTypeUpdated": "Startup type updated to:",
+  "editService": "Edit Service",
+  "openingServiceEditInterface": "Opening service edit interface...",
+  "serviceEditComplete": "Service editing complete...",
+  "deleteService": "Delete Service",
+  "confirmDeleteService": "Are you sure you want to delete this service from the system? (y/N)",
+  "deleteServiceWarning": "!!! Warning !!! This action cannot be undone",
+  "confirmReallyDelete": "Are you really sure you want to delete? (y/N)",
+  "cancelDelete": "Cancel deletion",
+  "deletingService": "Deleting service...",
+  "serviceNotExist": "Service does not exist",
+  "serviceRunningStopping": "Service is running, stopping service...",
+  "serviceDeleted": "Service has been deleted",
+  "returnServiceList": "Return to Service List",
+  "addNssmService": "Add NSSM Service",
+  "nssmNotInstalledPrompt": "NSSM is not installed. Please install NSSM in the settings first",
+  "addCustomServices": "Add Custom Service List",
+  "addServicesToMonitor": "Add services to monitor here",
+  "installNssm": "Install NSSM",
+  "nssmNotFoundPrompt": "NSSM (nssm.exe) not found. Do you want to install it? (y/N)",
+  "nssmInstallPrompt": "Would you like to download and install NSSM? (y/N)",
+  "downloadingNssm": "Downloading NSSM...",
+  "extractingNssm": "Download complete, extracting...",
+  "notFound": "Not Found",
+  "addNssmToPathPrompt": "Would you like to add NSSM to the system PATH? (y/N)",
+  "pathAlreadyExists": "This directory already exists in PATH",
+  "addedToPathSuccess": "Successfully added to system PATH",
+  "downloadOrInstallFailed": "Download or installation of NSSM failed:",
+  "nssmInstallComplete": "NSSM installation complete, path: ",
+  "nssmAlreadyInstalled": "NSSM is already installed, path: ",
+  "installationCancelled": "Installation cancelled",
+  "toggleTheme": "Toggle Theme",
+  "chooseTheme": "Choose Theme",
+  "themeFolderNotFound": "Theme folder not found",
+  "themeFileNotFoundInFolder": "No theme files found in the theme folder",
+  "resetToDefaultTheme": "Reset to default theme",
+  "aboutBody": [
+    " [ Program Information ]",
+    "  Name        : {0}",
+    "  Version     : {1}",
+    "  Author      : {2}",
+    "  Update      : {3}",
+    "  Path        : {4}",
+    "  GitHub      : https://github.com/Zhu-junwei/wsm",
+    "  NSSM Ver    : {5}",
+    "  NSSM Path   : {6}",
+    "  NSSM Web    : https://nssm.cc",
+    " ",
+    " [ Key Features ]",
+    "  Manage all Windows services hosted by NSSM",
+    "  Manage services defined in {7}",
+    "  Support Start, Stop, Restart, and Delete operations",
+    "  Native NSSM GUI to wrap executables (EXE, BAT, JAR, Python) as services",
+    "  Change Startup Type (Automatic / Manual / Disabled)",
+    "  View detailed parameters (Path, Args, Working Dir)",
+    "  Auto-detect and online installation of NSSM",
+    "  Support for custom UI themes",
+    " ",
+    " [ What is NSSM? ]",
+    "  NSSM (Non-Sucking Service Manager) is a service helper that",
+    "  encapsulates any executable as a standard Windows service.",
+    " ",
+    " [ Important Notes ]",
+    "  Administrator privileges are required",
+    "  Service deletion is permanent and irreversible",
+    "  Please ensure correct paths before editing"
+  ]
+}
+"@
+function Load-Language {
+    $osLanguage = [System.Globalization.CultureInfo]::CurrentCulture.Name
+    $languageFilePath = Join-Path -Path $PSScriptRoot -ChildPath "languages\$osLanguage.json"
+    if (Test-Path $languageFilePath) {
+        try {
+            $languageJson = Get-Content -Path $languageFilePath -Raw | ConvertFrom-Json
+        } catch {
+            $languageJson = $defaultLanguageJson | ConvertFrom-Json
+        }
+    } else {
+        $languageJson = $defaultLanguageJson | ConvertFrom-Json
+    }
+    return $languageJson
+}
+$Global:L = Load-Language
+
+
+# 加载UI插件
 $BoxPath = Join-Path $PSScriptRoot 'plugins/Box.ps1'
 if (Test-Path $BoxPath) { 
 	. $BoxPath 
 } else {
-	Write-Warning "缺少plugins/Box.ps1插件文件"
+	Write-Warning "Missing plugins/Box.ps1 plugin file"
 	Read-Host
 	exit
 }
 
+# 初始化必要参数
 function Initialize-Parameters() {
 	$Global:ScriptName = "Windows服务管理(WSM)"
 	$Global:ScriptUser = "zjw"
@@ -33,22 +153,24 @@ function Initialize-Parameters() {
 	$Global:NssmInstallDir = "$env:ProgramFiles\NSSM"
 	$Global:NssmZipUrl    = "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip"
 	$Global:ThemeDir = 'themes'
-	$Global:ExitKeys = @("0", "q", "exit")
+	$Global:ExitKeys = @("0", "q", "quit", "exit")
 	$Global:WSMServiceStore = @()
 	$Global:NssmInfo = [PSCustomObject]@{
         Path    = ''
         Version = ''
     }
 }
+
+# 定义默认的UI主题
 function Initialize-DefaultTheme() {
 	$Global:UI.Width = 50
-	$Global:UI.BoxStyle = 'Heavy'
+	$Global:UI.BoxStyle = 'Single'
 	$Global:UI.BorderColor = 'DarkCyan'
 	$Global:UI.TextPaddingLeft = 2
 	$Global:UI.TextColor  = 'Yellow'
 	$Global:UI.MutedColor  = 'DarkGray'
 }
-
+# 加载生效的主题
 function Load-SavedTheme {
 	try {
 		$ThemeDir = Join-Path $PSScriptRoot $Global:ThemeDir
@@ -94,7 +216,7 @@ function Get-WSMServices {
 # 读取菜单输入
 # ---------------------------
 function Read-MenuChoice {
-    param([string]$Prompt = "请选择操作")
+    param([string]$Prompt = "$($L.selectOperation)")
     (Read-Host $Prompt).Trim().ToLower()
 }
 
@@ -107,9 +229,9 @@ function Install-Nssm {
 
     try {
         # 下载 ZIP
-        Write-Host "`n正在下载 NSSM..." -ForegroundColor Yellow
+        Write-Host "`n$($L.downloadingNssm)" -ForegroundColor Yellow
         Invoke-WebRequest -Uri $Global:NssmZipUrl -OutFile $tempZip -UseBasicParsing
-        Write-Host "下载完成，正在解压..." -ForegroundColor Yellow
+        Write-Host "$($L.extractingNssm)" -ForegroundColor Yellow
 
         # 创建安装目录
         if (-not (Test-Path $Global:NssmInstallDir)) {
@@ -126,7 +248,7 @@ function Install-Nssm {
 
         # 找到所有 nssm.exe
         $nssmExes = Get-ChildItem -Path $tempExtractDir -Recurse -Filter "nssm.exe"
-        if (-not $nssmExes -or $nssmExes.Count -eq 0) { throw "未找到 nssm.exe" }
+        if (-not $nssmExes -or $nssmExes.Count -eq 0) { throw "$($L.notFound) nssm.exe" }
 
         # 判断系统位数
         $is64 = [Environment]::Is64BitOperatingSystem
@@ -134,14 +256,14 @@ function Install-Nssm {
 
         # 选择正确架构的 nssm.exe
         $sourceExe = $nssmExes | Where-Object { $_.Directory.Name -ieq $targetArch } | Select-Object -First 1
-        if (-not $sourceExe) { throw "未找到 $targetArch\nssm.exe" }
+        if (-not $sourceExe) { throw "$($L.notFound) $targetArch\nssm.exe" }
 
         # 移动到安装目录根目录
         $destExe = Join-Path $Global:NssmInstallDir "nssm.exe"
         Move-Item -Path $sourceExe.FullName -Destination $destExe -Force
-        Write-Host "NSSM 安装完成: $destExe" -ForegroundColor Green
+        Write-Host "$($L.nssmInstallComplete) $destExe" -ForegroundColor Green
 		Write-Host
-        $choice = Read-Host "是否将 NSSM 添加到系统 PATH? (y/N)"
+        $choice = Read-Host "$($L.addNssmToPathPrompt)"
         if ($choice -match '^[Yy]$') {
 			$dir = $Global:NssmInstallDir.TrimEnd('\')
 			$exists = @(
@@ -153,18 +275,18 @@ function Install-Nssm {
 				Select-Object -First 1
 
 			if ($exists) {
-				Write-Host "PATH 中已存在该目录" -ForegroundColor Yellow
+				Write-Host "$($L.pathAlreadyExists)" -ForegroundColor Yellow
 			} else {
 				$machinePath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
 				[Environment]::SetEnvironmentVariable("PATH", "$machinePath;$dir", "Machine")
-				Write-Host "已成功添加到系统 PATH" -ForegroundColor Green
+				Write-Host "$($L.addedToPathSuccess)" -ForegroundColor Green
 			}
 		}
 		Start-Sleep 1
         return $destExe
     } catch {
-        Write-Host "下载或安装 NSSM 失败: $_" -ForegroundColor Red
-        Read-Host "`n按回车退出程序"
+        Write-Host "$($L.downloadOrInstallFailed) $_" -ForegroundColor Red
+        Read-Host "`n$($L.pressEnterToExit)"
         Exit
     } finally {
         # 清理临时文件和目录
@@ -193,7 +315,6 @@ function Initialize-Nssm {
             Path    = $nssmPath
             Version = $fullVersion
         }
-        Write-Host "`nNSSM 已安装，路径：$nssmPath" -ForegroundColor Green
     } else {
         # 未安装，启动时不提示
         $Global:NssmInfo = $null
@@ -205,13 +326,13 @@ function Initialize-Nssm {
 # ---------------------------
 function Install-NssmIfMissing {
     if ($Global:NssmInfo -and (Test-Path $Global:NssmInfo.Path)) {
-        Write-Host "NSSM 已经安装，路径：$($Global:NssmInfo.Path)" -ForegroundColor Green
+        Write-Host "$($L.nssmAlreadyInstalled) $($Global:NssmInfo.Path)" -ForegroundColor Green
 		Read-Host
         return
     }
 
-    Write-Host "未找到 NSSM (nssm.exe)，需要安装吗？" -ForegroundColor Yellow
-    $choice = Read-Host "是否下载并安装 NSSM ? (y/N)"
+    Write-Host "$($L.nssmNotFoundPrompt)" -ForegroundColor Yellow
+    $choice = Read-Host "$($L.nssmInstallPrompt)"
     if ($choice -match "^[Yy]$") {
         $nssmPath = Install-Nssm
         $fullVersion = & $nssmPath version
@@ -219,11 +340,11 @@ function Install-NssmIfMissing {
             Path    = $nssmPath
             Version = $fullVersion
         }
-        Write-Host "NSSM 安装完成，路径：$nssmPath" -ForegroundColor Green
+        Write-Host "$($L.nssmInstallComplete)$nssmPath" -ForegroundColor Green
         Start-Sleep 1
     } else {
-        Write-Host "`n安装已取消" -ForegroundColor Red
-        Read-Host "`n按回车返回"
+        Write-Host "`n$($L.installationCancelled)" -ForegroundColor Red
+        Read-Host "`n$($L.pressEnterToContinue)"
     }
 }
 
@@ -233,7 +354,7 @@ function Install-NssmIfMissing {
 function Edit-ServiceFile {
 	$ServiceFilePath = Join-Path $PSScriptRoot $Global:ServiceFile
     if (-not (Test-Path $ServiceFilePath)) {
-        "# 这里添加需要监控的服务" | Out-File -FilePath $ServiceFilePath -Encoding UTF8
+        "# $($L.addServicesToMonitor)" | Out-File -FilePath $ServiceFilePath -Encoding UTF8
     }
     Start-Process -FilePath "notepad.exe" -ArgumentList $ServiceFilePath
 }
@@ -275,55 +396,52 @@ function PadRightWidth($text, $width) {
 # 显示服务列表菜单
 # ---------------------------
 function Show-ServiceListMenu {
-    while ($true) {
+	while ($true) {
 		Initialize-Services
 		$services = @(Get-WSMServices)
-        Clear-Host
-        if (-not $services -or $services.Count -eq 0) {
-            $menuItems = @(
+		Clear-Host
+		if (-not $services -or $services.Count -eq 0) {
+			$menuItems = @(
 				$null,
-                @{Text="当前没有可管理的服务。"; Color='Yellow';},
-				@{Text="仅管理使用nssm添加的服务和在$($Global:ServiceFile)中定义的服务。"; Color='Yellow';},
-                $null,
-                @{Text="0. 返回主菜单"; Color=$Global:UI.MutedColor;}
-            )
-            Show-BoxMenu -Title "服务列表" -MenuItems $menuItems -Wrap
-        } else {
-            # 计算服务名称列对齐长度
-            $maxNameLength = ($services | ForEach-Object { Get-DisplayWidth $_.DisplayName } | Measure-Object -Maximum).Maximum
+				@{Text="$($L.noManagedServices)"; Color='Yellow';},
+				$null,
+				@{Text="0. $($L.returnMainMenu)"; Color=$Global:UI.MutedColor;}
+			)
+			Show-BoxMenu -Title "$($L.serviceList)" -MenuItems $menuItems -Wrap
+		} else {
+			# 计算服务名称列对齐长度
+			$maxNameLength = ($services | ForEach-Object { Get-DisplayWidth $_.DisplayName } | Measure-Object -Maximum).Maximum
 			$menuItems = @($null)
-            $i = 1
-            foreach ($svc in $services) {
+			$i = 1
+			foreach ($svc in $services) {
 				$nameText = "{0}. {1}" -f $i, (PadRightWidth $svc.DisplayName $maxNameLength)
-                $menuItems += @{
-                    Text  = $nameText + "  $($svc.State)"  # 状态紧跟名字
-                    Color = (Get-StateColor $svc.State)    # 状态颜色
-                    Align = 'Left'
-                }
-                $i++
-            }
+				$menuItems += @{
+					Text  = $nameText + "  $($svc.State)"
+					Color = (Get-StateColor $svc.State)
+				}
+				$i++
+			}
 
-            # 添加空行和返回主菜单选项
-            $menuItems += @(
+			# 添加空行和返回主菜单选项
+			$menuItems += @(
 				$null,
-				@{Text="0. 返回主菜单"; Color=$Global:UI.MutedColor; Align='Left'},
+				@{Text="0. $($L.returnMainMenu)"; Color=$Global:UI.MutedColor; Align='Left'},
 				$null
 			)
 
-            Show-BoxMenu -Title "服务列表" -MenuItems $menuItems
-        }
+			Show-BoxMenu -Title "$($L.serviceList)" -MenuItems $menuItems -Wrap
+		}
 
-        # 读取用户选择
-        $selection = Read-MenuChoice
-        if ($Global:ExitKeys -contains $selection) { return }
-
-        if ($selection -match "^\d+$" -and $selection -ge 1 -and $selection -le $services.Count) {
-            $svc = $services[$selection - 1]
-            Show-ServiceManagementMenu $svc
-        } else {
-            continue
-        }
-    }
+		# 读取用户选择
+		$selection = Read-MenuChoice
+		if ($Global:ExitKeys -contains $selection) { return }
+		if ($selection -match "^\d+$" -and $selection -ge 1 -and $selection -le $services.Count) {
+			$svc = $services[$selection - 1]
+			Show-ServiceManagementMenu $svc
+		} else {
+			continue
+		}
+	}
 }
 
 function Get-StateColor {
@@ -350,12 +468,12 @@ function Invoke-ServiceAction {
     )
 
     $actionText = @{
-        Start   = "启动"
-        Stop    = "停止"
-        Restart = "重启"
+        Start   = "$($L.start)"
+        Stop    = "$($L.stop)"
+        Restart = "$($L.restart)"
     }[$Action]
 
-    Write-Host "`n正在${actionText}服务..." -ForegroundColor Yellow
+    Write-Host "`n${actionText}..." -ForegroundColor Yellow
 
     try {
         switch ($Action) {
@@ -373,11 +491,11 @@ function Invoke-ServiceAction {
             }
         }
 
-        Write-Host "服务已${actionText}" -ForegroundColor Green
+        Write-Host "${actionText} $($L.success)" -ForegroundColor Green
         return $true
     }
     catch {
-        Write-Host "`n服务${actionText}失败" -ForegroundColor Red
+        Write-Host "`n${actionText} $($L.failure)" -ForegroundColor Red
         Write-Host "--------------------------------" -ForegroundColor DarkGray
          Write-Host "`n[Message]" -ForegroundColor Yellow
 		Write-Host $_.Exception.Message -ForegroundColor DarkRed
@@ -397,7 +515,7 @@ function Invoke-ServiceAction {
 		Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
         Write-Host "--------------------------------" -ForegroundColor DarkGray
 		Show-ServiceDetails $svc
-		Read-Host "`n按回车键继续"
+		Read-Host "`n$($L.pressEnterToContinue)"
 		return $false
     }
 }
@@ -410,27 +528,27 @@ function Show-ServiceManagementMenu {
     while ($true) {
 		$svc = Get-CimInstance -ClassName Win32_Service -Filter "Name='$($svc.Name)'"
 		if (-not $svc) {
-			Write-Host "`n服务 $($svc.Name) 不存在，可能已被删除。" -ForegroundColor Red
+			Write-Host "`n$($svc.Name) $($L.serviceNotExist)" -ForegroundColor Red
 			Read-Host
 			return
 		}
 		Clear-Host
 		$menuItems = @(
 			$null,
-			@{Text=" 当前状态 : $($svc.State)";Color=(Get-StateColor $svc.State)},
+			@{Text=" $($L.currentStatus) : $($svc.State)";Color=(Get-StateColor $svc.State)},
 			$null,
-			@{Text='1. 启动服务'},
-			@{Text='2. 停止服务'},
-			@{Text='3. 重启服务'},
-			@{Text='4. 查看详细参数'},
-			@{Text='5. 更改启动类型'},
-			@{Text='6. 编辑服务'},
-			@{Text='7. 删除服务'}
+			@{Text="1. $($L.startService)"},
+			@{Text="2. $($L.stopService)"},
+			@{Text="3. $($L.restartService)"},
+			@{Text="4. $($L.viewDetails)"},
+			@{Text="5. $($L.changeStartupType)"},
+			@{Text="6. $($L.editService)"},
+			@{Text="7. $($L.deleteService)"}
 			$null,
-			@{Text='0. 返回服务列表';Color=$Global:UI.MutedColor;},
+			@{Text="0. $($L.returnServiceList)";Color=$Global:UI.MutedColor;},
 			$null
 		)
-		Show-BoxMenu -Title "管理服务: $($svc.DisplayName)" -MenuItems $menuItems
+		Show-BoxMenu -Title "$($svc.DisplayName)" -MenuItems $menuItems
         $choice = Read-MenuChoice
 
         switch ($choice) {
@@ -444,21 +562,21 @@ function Show-ServiceManagementMenu {
             "3" {
                 $null = Invoke-ServiceAction -ServiceName $svc.Name -Action Restart
             }
-            "4" { Show-ServiceDetails $svc; Read-Host "`n按回车返回" }
+            "4" { Show-ServiceDetails $svc; Read-Host "`n$($L.pressEnterToContinue)" }
             "5" {
-                Write-Host "`n正在更改启动类型..." -ForegroundColor Yellow
+                Write-Host "`n$($L.changingStartupType)" -ForegroundColor Yellow
                 Change-ServiceStartMode $svc
                 Start-Sleep 1
             }
 			"6" {
 				if (-not $Global:NssmInfo -or [string]::IsNullOrEmpty($Global:NssmInfo.Path) -or -not (Test-Path $Global:NssmInfo.Path)) {
-					Write-Warning "nssm未安装，请到设置中先安装nssm"
+					Write-Warning "$(L.nssmNotInstalledPrompt)"
 					Read-Host
 					continue
 				}
-                Write-Host "`n正在打开服务编辑界面..." -ForegroundColor Yellow
+                Write-Host "`n$(L.openingServiceEditInterface)" -ForegroundColor Yellow
                 Start-Process "nssm.exe" -ArgumentList "edit $($svc.Name)" -Wait
-				Write-Host "`n服务编辑完成..." -ForegroundColor Yellow
+				Write-Host "`n$($L.serviceEditComplete)" -ForegroundColor Yellow
                 Start-Sleep 1
             }
             "7" { 
@@ -481,7 +599,7 @@ function Show-ServiceDetails {
     param($svc)
     $paramsPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$($svc.Name)\Parameters"
     $params = if (Test-Path $paramsPath) { Get-ItemProperty $paramsPath } else { @{} }
-    Write-Host "`n=== 服务详细参数 ===" -ForegroundColor Cyan
+    Write-Host "`n=== $($L.serviceDetails) ===" -ForegroundColor Cyan
     Write-Indented "Name         : $($svc.Name)"
     Write-Indented "DisplayName  : $($svc.DisplayName)"
     Write-Indented "Description  : $($svc.Description)"
@@ -498,19 +616,19 @@ function Show-ServiceDetails {
 # ---------------------------
 function Change-ServiceStartMode {
     param($svc)
-    Write-Host "`n当前启动类型: $($svc.StartMode)"
+    Write-Host "`n$($L.currentStartupType) $($svc.StartMode)"
     Write-Indented "1. Automatic"
     Write-Indented "2. Manual"
     Write-Indented "3. Disabled"
-    $choice = Read-Host "`n选择新的启动类型"
+    $choice = Read-Host "`n$($L.selectNewStartupType)"
     $mode = switch ($choice) {
         "1" { "Automatic" }
         "2" { "Manual" }
         "3" { "Disabled" }
-        default { Write-Host "`无效选择"; return }
+        default { Write-Host "$($L.invalidChoice)"; return }
     }
     Set-Service $svc.Name -StartupType $mode
-    Write-Host "`启动类型已更新为 $mode" -ForegroundColor Green
+    Write-Host "$($L.startupTypeUpdated) $mode" -ForegroundColor Green
 }
 
 # ---------------------------
@@ -520,36 +638,36 @@ function Remove-ServiceWithConfirmation {
     param($svcName)
 
     Write-Host
-    $confirm1 = Read-Host "确认从系统中删除服务 $svcName ? (y/N)"
+    $confirm1 = Read-Host "$svcName $($L.confirmDeleteService)"
     if ($confirm1 -notmatch "^[Yy]$") {
-        Write-Host "取消删除" -ForegroundColor Yellow
+        Write-Host "$($L.cancelDelete)" -ForegroundColor Yellow
         Start-Sleep 1
         return
     }
-	Write-Warning "!!! 警告 !!! 此操作不可撤销"
-    $confirm2 = Read-Host "真的要删除 $svcName ? (y/N)"
+	Write-Warning "$($L.deleteServiceWarning)"
+    $confirm2 = Read-Host "$svcName $($L.confirmReallyDelete)"
     if ($confirm2 -notmatch "^[Yy]$") {
-        Write-Host "取消删除" -ForegroundColor Yellow
+        Write-Host "$($L.cancelDelete)" -ForegroundColor Yellow
         Start-Sleep 1
         return
     }
-    Write-Host "正在删除服务..." -ForegroundColor Yellow
+    Write-Host "$($L.deletingService)" -ForegroundColor Yellow
     # 检查服务是否存在
     $service = Get-Service -Name $svcName -ErrorAction SilentlyContinue
     if (-not $service) {
-        Write-Host "服务 $svcName 不存在" -ForegroundColor Red
+        Write-Host "$($L.serviceNotExist)$svcName" -ForegroundColor Red
         Start-Sleep 2
         return
     }
     # 如果服务在运行，先停止它
     if ($service.Status -eq 'Running') {
-        Write-Host "服务正在运行，正在停止服务..." -ForegroundColor Yellow
+        Write-Host "$($L.serviceRunningStopping)" -ForegroundColor Yellow
         Stop-Service -Name $svcName -Force -ErrorAction SilentlyContinue
         $service.WaitForStatus('Stopped', '00:00:10')  # 最多等待10秒
     }
     # 使用 nssm 删除服务
     & nssm.exe remove $svcName confirm
-    Write-Host "服务已删除" -ForegroundColor Green
+    Write-Host "$($L.serviceDeleted)" -ForegroundColor Green
     Start-Sleep 3
 }
 
@@ -558,12 +676,11 @@ function Remove-ServiceWithConfirmation {
 # ---------------------------
 function Add-NssmService {
 	if (-not $Global:NssmInfo -or [string]::IsNullOrEmpty($Global:NssmInfo.Path) -or -not (Test-Path $Global:NssmInfo.Path)) {
-		Write-Warning "nssm未安装，请到设置中先安装nssm"
+		Write-Warning "$($L.nssmNotInstalledPrompt)"
 		Read-Host
 		return
 	}
 	Clear-Host
-	Write-Host "=== 添加 NSSM 服务 ===`n"
 	Start-Process nssm.exe -ArgumentList "install"
 }
 
@@ -573,7 +690,7 @@ function Show-ThemeMenu {
 		$themes = Join-Path $PSScriptRoot $Global:ThemeDir
         # 确认主题目录存在
         if (-not (Test-Path $themes)) {
-            Write-Warning "主题文件夹 $($themes) 不存在"
+            Write-Warning "$($L.themeFolderNotFound) $($themes)"
 			Read-Host
             return
         }
@@ -581,7 +698,7 @@ function Show-ThemeMenu {
         # 获取所有 ps1 主题文件
         $themeFiles = Get-ChildItem -Path $themes -Filter *.ps1 | Sort-Object Name
         if ($themeFiles.Count -eq 0) {
-            Write-Warning "主题文件夹中没有找到主题文件"
+            Write-Warning "$($L.themeFileNotFoundInFolder)"
 			Read-Host
             return
         }
@@ -595,13 +712,13 @@ function Show-ThemeMenu {
         }
         $menuItems += @(
             $null,
-            @{Text="0. 重置为默认主题"},
-            @{Text="q. 返回上级菜单";;Color=$Global:UI.MutedColor;},
+            @{Text="0. $($L.resetToDefaultTheme)"},
+            @{Text="q. $($L.return)";;Color=$Global:UI.MutedColor;},
             $null
         )
 
         # 显示菜单
-        Show-BoxMenu -Title "主题选择" -MenuItems $menuItems
+        Show-BoxMenu -Title "$($L.chooseTheme)" -MenuItems $menuItems
         # 读取用户选择
         $selection = Read-MenuChoice
         # 处理退出
@@ -635,12 +752,12 @@ function Add-ServiceMenu {
 		Clear-Host
 		$menuItems = @(
 			$null,
-			@{Text='1. 添加nssm服务'},
-			@{Text="2. 添加自定义服务列表$($Global:ServiceFile)"},
+			@{Text="1. $($L.addNssmService)"},
+			@{Text="2. $($L.addCustomServices)$($Global:ServiceFile)"},
 			$null,
-			@{Text='0. 返回主菜单';Color=$Global:UI.MutedColor;}
+			@{Text="0. $($L.returnMainMenu)";Color=$Global:UI.MutedColor;}
 		)
-		Show-BoxMenu -Title "添加新服务" -MenuItems $menuItems
+		Show-BoxMenu -Title "$($L.addService)" -MenuItems $menuItems
         $choice = Read-MenuChoice
         switch ($choice) {
             "1" { Add-NssmService }
@@ -658,12 +775,12 @@ function Show-SettingsMenu {
 		Clear-Host
 		$menuItems = @(
 			$null,
-			@{Text='1. 安装nssm'},
-			@{Text='2. 切换主题'}
+			@{Text="1. $($L.installNssm)"},
+			@{Text="2. $($L.toggleTheme)"}
 			$null,
-			@{Text='0. 返回上级菜单';Color=$Global:UI.MutedColor;}
+			@{Text="0. $($L.returnMainMenu)";Color=$Global:UI.MutedColor;}
 		)
-		Show-BoxMenu -Title "设置" -MenuItems $menuItems
+		Show-BoxMenu -Title "$($L.setting)" -MenuItems $menuItems
         $choice = Read-MenuChoice
         switch ($choice) {
             "1" { Install-NssmIfMissing }
@@ -678,50 +795,36 @@ function Show-SettingsMenu {
 # ---------------------------
 function Show-AboutMenu {
     Clear-Host
-	$width = $Global:UI.Width
-	$Global:UI.Width = 80
-    $content = @"
- 【程序信息】
-  名称        : $Global:ScriptName
-  版本        : $Global:ScriptVersion
-  作者        : $Global:ScriptUser
-  更新时间    : $Global:ScriptUpdate
-  位置        : $PSCommandPath
-  主页        : https://github.com/Zhu-junwei/wsm
-  NSSM 版本   : $($Global:NssmInfo.Version)
-  NSSM 位置   : $($Global:NssmInfo.Path)
-  NSSM 官网   : https://nssm.cc
- 
- 【功能】
-  管理所有由 NSSM 托管的 Windows 服务
-  管理所有由 $($ServiceFile) 定义的服务
-  提供服务状态查看、启动、停止、重启、删除等操作
-  调用 NSSM 官方 GUI 编辑服务，适合将普通程序（EXE / BAT / JAR / Python 等）注册为系统服务
-  修改服务启动类型（Automatic / Manual / Disabled）
-  查看服务详细参数（程序、参数、工作目录）
-  支持检测并在线安装 NSSM，无需手动配置
-  切换程序主题，可自定义添加
- 
- 【什么是 NSSM】
-  NSSM（Non-Sucking Service Manager）用于将普通程序
-  封装为标准 Windows Service，比 sc.exe 更稳定、易用。
- 
- 【注意事项】
-  本脚本需以管理员权限运行
-  删除服务操作不可恢复，请谨慎
-  编辑服务前请确认程序路径与参数正确
-"@
-    $menuItems = $content -split "[`r`n]+" | ForEach-Object {
-		if ($_ -match '【') {
-			@{ Text = $_; Color = 'Cyan' }
-		} else {
-			@{ Text = $_ }
-		}
-	}
+    $oldWidth = $Global:UI.Width
+    $Global:UI.Width = 84
 
-	Show-BoxMenu -Title "关于" -MenuItems $menuItems -Footer "按回车返回主菜单" -Wrap
-	Read-Host
-	$Global:UI.Width = $width
+    # 直接循环处理 JSON 里的每一行
+    $menuItems = foreach ($lineTemplate in $L.aboutBody) {
+        # 1. 变量替换（-f 会自动处理每一行的占位符）
+        $formattedLine = $lineTemplate -f $L.appName, 
+                                          $Global:ScriptVersion, 
+                                          $Global:ScriptUser, 
+                                          $Global:ScriptUpdate, 
+                                          $PSCommandPath, 
+                                          $Global:NssmInfo.Version, 
+                                          $Global:NssmInfo.Path,
+                                          $Global:ServiceFile
+
+        # 2. 根据内容决定颜色
+        if ($formattedLine -match '[\[【]') {
+            @{ Text = $formattedLine; Color = 'Cyan' }
+        } elseif ($formattedLine -match '^\s*\*') {
+            @{ Text = $formattedLine; Color = 'Yellow' }
+        } else {
+            @{ Text = $formattedLine }
+        }
+    }
+
+    # 3. 渲染
+    Show-BoxMenu -Title "$($L.about)" -MenuItems $menuItems -Footer "$($L.returnMainMenu)" -Wrap
+    
+    Read-Host
+    $Global:UI.Width = $oldWidth
 }
 
 # ---------------------------
@@ -732,29 +835,30 @@ function Show-MainMenu {
 		Clear-Host
 		$menuItems = @(
 			$null,
-			@{Text='1. 服务列表'},
-			@{Text='2. 添加服务'},
-			@{Text='3. 设置'},
-			@{Text='4. 关于'},
+			@{Text="1. $($L.serviceList)"},
+			@{Text="2. $($L.addService)"},
+			@{Text="3. $($L.setting)"},
+			@{Text="4. $($L.about)"},
 			$null,
-			@{Text='0. 退出';Color=$Global:UI.MutedColor;}
+			@{Text="0. $($L.exit)";Color=$Global:UI.MutedColor;}
 		)
-		Show-BoxMenu -Title "$Global:ScriptName" -MenuItems $menuItems -Footer "$Global:ScriptVersion "
-        $choice = Read-MenuChoice
-        switch ($choice) {
-            "1" { Show-ServiceListMenu }
-            "2" { Add-ServiceMenu }
+		Show-BoxMenu -Title "$($L.appName)" -MenuItems $menuItems -Footer "$Global:ScriptVersion "
+		$choice = Read-MenuChoice
+		switch ($choice) {
+			"1" { Show-ServiceListMenu }
+			"2" { Add-ServiceMenu }
 			"3" { Show-SettingsMenu }
-            "4" { Show-AboutMenu }
-            { $Global:ExitKeys -contains $_ } { Exit }
-        }
-    }
+			"4" { Show-AboutMenu }
+			{ $Global:ExitKeys -contains $_ } { Exit }
+		}
+	}
 }
 
 # ===========================
 # 启动应用
 # ===========================
 function Main{
+	Ensure-RunAsAdmin
 	Initialize-Parameters
 	Load-SavedTheme
 	Initialize-Services

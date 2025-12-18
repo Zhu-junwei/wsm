@@ -1,10 +1,12 @@
-# Windows 服务管理（WSM）
+English | [中文](./README_zh-CN.md) 
 
-WSM（Windows Service Manager）是一个基于 PowerShell + [NSSM](https://nssm.cc/) 的交互式命令行工具，用于统一管理 Windows 服务，尤其适合管理 **由 NSSM 托管的自定义服务**（EXE / BAT / JAR / Python 等）。
+# Windows Service Manager (WSM)
 
-该工具提供完整的菜单界面，支持服务查看、启动、停止、重启、删除、编辑、主题切换以及 NSSM 的自动安装。
+WSM (Windows Service Manager) is an interactive command-line tool based on PowerShell + [NSSM](https://nssm.cc/) for unified management of Windows services. It is especially suitable for managing **custom services hosted by NSSM** (EXE / BAT / JAR / Python, etc.).
 
-## 运行示例
+This tool provides a complete menu interface, supporting service viewing, starting, stopping, restarting, deleting, editing, theme switching, and automatic installation of NSSM.
+
+## Example Usage
 
 ![](./imgs/service_list.png)
 
@@ -12,163 +14,140 @@ WSM（Windows Service Manager）是一个基于 PowerShell + [NSSM](https://nssm
 
 ---
 
-## ✨ 功能特性
+## ✨ Features
 
-- 自动检测并管理 **NSSM 托管的服务**
-- 管理通过 `services.txt` 添加的自定义服务
-- 服务操作：
-  - 启动 / 停止 / 重启
-  - 删除（双重确认，防误操作）
-  - 修改启动类型（Automatic / Manual / Disabled）
-- 查看服务详细参数：
-  - 程序路径
-  - 启动参数
-  - 工作目录
-- 一键调用 **NSSM 官方 GUI** 编辑服务
-- 自动检测并 **在线安装 NSSM**
-- 可切换主题（支持自定义主题脚本）
-- 自动管理员权限提升
-- 适配中英文显示宽度，对齐友好
+* Automatically detect and manage **NSSM-hosted services**
+* Manage custom services added via `services.txt`
+* Service operations:
 
----
+  * Start / Stop / Restart
+  * Delete (double confirmation to prevent accidental deletion)
+  * Modify startup type (Automatic / Manual / Disabled)
+* View detailed service parameters:
 
-## 🧩 运行环境要求
-
-- Windows 10 / 11
-- PowerShell 5.1
-- 管理员权限（脚本会自动请求）
-- 可访问互联网（仅在下载 NSSM 时需要）
+  * Program path
+  * Startup arguments
+  * Working directory
+* One-click access to **NSSM official GUI** for service editing
+* Automatically detect and **install NSSM online**
+* Theme switching (supports custom theme scripts)
+* Automatic elevation to administrator privileges
+* Adapted for both Chinese and English displays with proper alignment
 
 ---
 
-## 📁 目录结构说明
+## 🧩 System Requirements
+
+* Windows 10 / 11
+* PowerShell 5.1
+* Administrator privileges (script will request automatically)
+* Internet access (only required when downloading NSSM)
+
+---
+
+## 📁 Directory Structure
 
 ```text
-WSM.ps1                 # 主程序
-services.txt            # 额外需要管理的服务列表
+WSM.ps1                 # Main script
+services.txt            # Custom service list to manage
 plugins/
- └─ Box.ps1             # 控制台 Box UI 插件
+ └─ Box.ps1             # Console Box UI plugin
 themes/
- ├─ xxx.ps1             # 主题文件
- └─ current_theme.txt   # 当前主题记录文件（自动生成）
+ ├─ xxx.ps1             # Theme file
+ └─ current_theme.txt   # Current theme record file (automatically generated)
 ```
 
 ---
 
-## 🚀 使用方法
+## 🚀 Usage
 
-### 1️⃣ 运行脚本
+### 1️⃣ Run the Script
 
-首先关闭执行PowerShell 的脚本执行限制。
+This script supports both **cmd** and **ps1** formats. `WSM.cmd` will run `WSM.ps1` with administrator privileges.
+
+---
+
+#### Method 1: Double-click to Run (Recommended)
+
+Double-click the `WSM.cmd` file to run it.
+
+---
+
+#### Method 2: Run in PowerShell
+
+First, disable the PowerShell script execution policy:
 
 ```
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass 
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
 ```
 
-
-
-本脚本支持 **双击运行** 和 **PowerShell 命令行运行** 两种方式。
+Then, run `WSM.ps1` in PowerShell with administrator privileges.
 
 ---
 
-#### 方法一：双击运行（推荐）
+### 2️⃣ Main Menu Features
 
-1. 确保 `.ps1` 文件已关联到 `powershell.exe`
-2. 直接双击 `WSM.ps1` 即可运行
-3. 若未以管理员身份启动，脚本会自动请求并重新以管理员权限运行
+* **Service List**:
 
-**如何将 `.ps1` 文件关联到 PowerShell：**
+  * View and manage all NSSM-hosted services and those defined in `services.txt`
+* **Add New Service**:
 
-- 右键任意 `.ps1` 文件 → **打开方式** → **选择其他应用**
-- 选择 **Windows PowerShell**
-- 勾选 **始终使用此应用打开 .ps1 文件**
-- 点击 **确定**
+  * Open NSSM official GUI (`nssm install`)
+  * Edit custom service list in `services.txt`
+* **Program Settings**:
 
-> 如果列表中未显示 Windows PowerShell：  
-> 点击“更多应用”，或手动选择以下路径：
->
-> `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
+  * Install NSSM
+  * Switch themes
+* **About**:
 
----
-
-#### 方法二：在 PowerShell 中运行
-
-在 PowerShell 中执行：
-
-```powershell
-
-.\WSM.ps1
-```
-
-
-
-脚本会自动检测是否以管理员身份运行，若不是将自动重新启动。
+  * Display program information, version, NSSM details, and feature descriptions
 
 ---
 
-### 2️⃣ 主菜单功能
+## 📄 `services.txt` Description
 
-- **服务列表**：
+`services.txt` is used to supplement additional services that need to be managed. (Services added via NSSM will be managed automatically.)
 
-	- 查看并管理所有 NSSM 服务及 `services.txt` 中定义的服务
-
-- **添加新服务**：
-	- 调用 NSSM 官方 GUI (`nssm install`)
-	- 编辑自定义服务列表`services.txt`
-	
-- **程序设置**：
-  - 安装NSSM
-  - 切换主题
-  
-- **关于**：
-  显示程序信息、版本、NSSM 信息及功能说明
-
----
-
-## 📄 services.txt 说明
-
-`services.txt` 用于补充需要管理的服务。(使用nssm添加的服务会自动管理)
-
-示例：
+Example:
 
 ```text
-# 这里添加需要监控的服务
+# Add services to monitor here
 W32Time
 MySQL
 ```
 
-说明：
+Explanation:
 
-- 每行一个服务名（Service Name）
-- 支持注释（`#` / `;` / `//`）
-- 文件不存在时会自动创建
+* One service name per line (Service Name)
+* Supports comments (`#` / `;` / `//`)
+* If the file does not exist, it will be automatically created
 
 ---
 
-## 🎨 主题系统说明
+## 🎨 Theme System Description
 
-- 所有主题文件位于 `themes` 目录
-- 每个主题是一个 `.ps1` 文件
-- 当前主题记录在 `current_theme.txt`
-- 支持运行时切换，无需重启脚本
+* All theme files are located in the `themes` directory
+* Each theme is a `.ps1` file
+* The current theme is recorded in `current_theme.txt`
+* Runtime switching is supported without restarting the script
 
-主题可配置项示例：
+Example theme configuration:
 
 ```powershell
 # ==========================
-# UI 主题配置说明
+# UI Theme Configuration
 # ==========================
-# $Global:UI 哈希表用于控制 WSM 菜单界面的样式和显示效果
-# 可在运行时切换主题，支持修改颜色、边框样式、宽度等
-# 字段说明：
-#   Width           : 菜单/Box 宽度（字符数）
-#   BorderColor     : 边框颜色
-#   BoxStyle        : 边框样式（Double/Single/Heavy/Rounded/Ascii/Dotted）
-#   TitleColor      : 菜单标题颜色
-#   TextColor       : 列表文本颜色
-#   TextPaddingLeft : 文本左侧缩进空格数
-#   AccentColor     : 高亮或强调文字颜色（还没用到）
-#   MutedColor      : 辅助或提示文字颜色（如“返回”按钮、次要信息）
+# The $Global:UI hashtable controls the style and display effects of the WSM menu interface
+# Themes can be switched at runtime, supporting modification of color, border style, width, etc.
+# Field explanation:
+#   Width           : Menu/Box width (in characters)
+#   BorderColor     : Border color
+#   BoxStyle        : Border style (Double/Single/Heavy/Rounded/Ascii/Dotted)
+#   TitleColor      : Menu title color
+#   TextColor       : List text color
+#   TextPaddingLeft : Left padding for text (spaces)
+#   AccentColor     : Highlight or emphasized text color (not used yet)
+#   MutedColor      : Auxiliary or prompt text color (like "Back" button, secondary information)
 $Global:UI = @{
     Width       = 50
     BorderColor = 'DarkGray'
@@ -183,42 +162,46 @@ $Global:UI = @{
 
 ---
 
-## ⚙️ NSSM 支持说明
+## ⚙️ NSSM Support Details
 
-- 程序启动时自动检测程序所当前目录以及环境变量PATH中的 `nssm.exe`
-- 未检测到时不会强制安装，仍可管理`services.txt`中添加的服务，但编辑功能和使用nssm添加服务功能无法使用
-- 可在【设置】菜单中手动下载nssm安装
-- 支持安装时加入系统 PATH
+* The program will automatically detect the `nssm.exe` in the current directory and the `PATH` environment variable.
+* If NSSM is not found, it will not be forcefully installed. You can still manage services added in `services.txt`, but the service editing features and the ability to add new services via NSSM will not be available.
+* You can manually download NSSM via the **Settings** menu if needed.
+* Supports adding NSSM to the system `PATH` during installation.
 
-NSSM 官网：[nssm](https://nssm.cc)
-
----
-
-## ⚠️ 注意事项
-
-- 本工具 **必须以管理员权限运行**
-- 删除服务操作不可恢复，请谨慎确认
-- 编辑服务前请确认程序路径和参数正确
-- 修改 PATH 会影响系统环境变量
+NSSM website: [nssm](https://nssm.cc)
 
 ---
 
-## 📌 适用场景
+## ⚠️ Important Notes
 
-- 将普通程序注册为 Windows 服务
-- 管理 Java / Python / Node / 批处理 后台服务
-- 运维或开发环境的服务统一管理
-- 替代手动使用 `services.msc` 或 `sc.exe`
+* This tool **must be run with administrator privileges**.
+* Service deletion is irreversible, please confirm carefully.
+* Before editing a service, ensure that the program path and arguments are correct.
+* Modifying the `PATH` variable may affect system environment variables.
 
 ---
 
-## 👤 作者信息
+## 📌 Use Cases
 
-- 作者：zjw
-- 项目主页：[wsm](https://github.com/Zhu-junwei/wsm)
+* Registering regular programs as Windows services
+* Managing background services for Java / Python / Node / Batch
+* Unified service management for operations or development environments
+* Replacing manual usage of `services.msc` or `sc.exe`
+
+---
+
+## 👤 Author Information
+
+* Author: zjw
+* Project homepage: [wsm](https://github.com/Zhu-junwei/wsm)
 
 ---
 
 ## 📜 License
 
-本项目（WSM）采用 MIT 许可证，允许自由使用、复制、修改和分发本项目代码，用于个人或商业用途。
+This project (WSM) is licensed under the MIT License, allowing free use, copying, modification, and distribution of the code for personal or commercial purposes.
+
+---
+
+Let me know if you need any adjustments!
