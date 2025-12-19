@@ -569,11 +569,11 @@ function Show-ServiceManagementMenu {
             }
 			"6" {
 				if (-not $Global:NssmInfo -or [string]::IsNullOrEmpty($Global:NssmInfo.Path) -or -not (Test-Path $Global:NssmInfo.Path)) {
-					Write-Warning "$(L.nssmNotInstalledPrompt)"
+					Write-Warning "$($L.nssmNotInstalledPrompt)"
 					Read-Host
 					continue
 				}
-                Write-Host "`n$(L.openingServiceEditInterface)" -ForegroundColor Yellow
+                Write-Host "`n$($L.openingServiceEditInterface)" -ForegroundColor Yellow
                 Start-Process "nssm.exe" -ArgumentList "edit $($svc.Name)" -Wait
 				Write-Host "`n$($L.serviceEditComplete)" -ForegroundColor Yellow
                 Start-Sleep 1
