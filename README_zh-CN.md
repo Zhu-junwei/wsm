@@ -46,6 +46,7 @@ WSM（Windows Service Manager）是一个基于 PowerShell + [NSSM](https://nssm
 ## 📁 目录结构说明
 
 ```text
+WSM.cmd                 # 启动入口
 WSM.ps1                 # 主程序
 services.txt            # 额外需要管理的服务列表
 plugins/

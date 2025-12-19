@@ -48,6 +48,7 @@ This tool provides a complete menu interface, supporting service viewing, starti
 ## 📁 Directory Structure
 
 ```text
+WSM.cmd                 # Startup entry script
 WSM.ps1                 # Main script
 services.txt            # Custom service list to manage
 plugins/
